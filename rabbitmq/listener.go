@@ -1,6 +1,7 @@
 package rabbitmq
 
 import (
+	"github.com/zeromicro/go-zero/core/threading"
 	"log"
 
 	"github.com/streadway/amqp"
@@ -12,7 +13,7 @@ type (
 	ConsumeHandle func(message string) error
 
 	ConsumeHandler interface {
-		Consume(message string) error
+		Consume(message amqp.Delivery) error
 	}
 
 	RabbitListener struct {
@@ -43,26 +44,27 @@ func MustNewListener(listenerConf RabbitListenerConf, handler ConsumeHandler) qu
 
 func (q RabbitListener) Start() {
 	for _, que := range q.queues.ListenerQueues {
-		msg, err := q.channel.Consume(
-			que.Name,
-			"",
-			que.AutoAck,
-			que.Exclusive,
-			que.NoLocal,
-			que.NoWait,
-			nil,
-		)
-		if err != nil {
-			log.Fatalf("failed to listener, error: %v", err)
-		}
-
-		go func() {
-			for d := range msg {
-				if err := q.handler.Consume(string(d.Body)); err != nil {
-					logx.Errorf("Error on consuming: %s, error: %v", string(d.Body), err)
+		for i := 0; i < que.Num; i++ {
+			threading.GoSafe(func() {
+				msg, err := q.channel.Consume(
+					que.Name,
+					"",
+					que.AutoAck,
+					que.Exclusive,
+					que.NoLocal,
+					que.NoWait,
+					nil,
+				)
+				if err != nil {
+					log.Fatalf("failed to listener, error: %v", err)
 				}
-			}
-		}()
+				for d := range msg {
+					if err := q.handler.Consume(d); err != nil {
+						logx.Errorf("Error on consuming: %s, error: %v", string(d.Body), err)
+					}
+				}
+			})
+		}
 	}
 
 	<-q.forever

@@ -9,7 +9,7 @@ import (
 
 func main() {
 	conf := rabbitmq.RabbitSenderConf{RabbitConf: rabbitmq.RabbitConf{
-		Host:     "192.168.253.100",
+		Host:     "127.0.0.1",
 		Port:     5672,
 		Username: "guest",
 		Password: "guest",
@@ -19,15 +19,7 @@ func main() {
 		"msg": "json test 111",
 	}
 	msg, _ := json.Marshal(data)
-	err := sender.Send("exchange.direct", "gozero", msg)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	conf.ContentType = "text/plain"
-	sender = rabbitmq.MustNewSender(conf)
-	message := "test message"
-	err = sender.Send("exchange.direct", "gozero", []byte(message))
+	err := sender.Send("mqtt-message-exchange", "go-queue", msg)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -24,6 +24,8 @@ type ConsumerConf struct {
 	NoLocal bool `json:",default=false"`
 	// Whether to block processing
 	NoWait bool `json:",default=false"`
+	// consumer number
+	Num int `json:",default=1"`
 }
 
 type RabbitSenderConf struct {
